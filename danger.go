@@ -65,13 +65,13 @@ type Payload struct {
 	// Expiry specifies when the payload expires as a Go duration string (e.g., "1h", "30m", "24h").
 	// If empty, the payload never expires.
 	Expiry string `json:"expiry,omitempty"`
-	
+
 	// Identifier is typically used to store a user ID or entity identifier.
 	Identifier string `json:"identifier,omitempty"`
-	
+
 	// Role represents the permission level or role associated with this payload.
 	Role string `json:"role,omitempty"`
-	
+
 	// Data contains arbitrary key-value pairs for additional payload information.
 	Data map[string]string `json:"data,omitempty"`
 }
@@ -80,7 +80,10 @@ type Payload struct {
 // It is used by default when creating new Signer instances.
 var WallClock = wallClock{}
 
-func (_ wallClock) Epoch() int64 {
+// SignatureExpiredError is returned when a payload expiry has been reached at verification time.
+var SignatureExpiredError = fmt.Errorf("payload signature has expired")
+
+func (wallClock) Epoch() int64 {
 	return time.Now().Unix()
 }
 
@@ -88,8 +91,8 @@ func (fake *fakeClock) Epoch() int64 {
 	return fake.timestamp
 }
 
-func (fake *fakeClock) setEpoch(timestamp int64) {
-	fake.timestamp = timestamp
+func (fake *fakeClock) shiftEpoch(delta int64) {
+	fake.timestamp += delta
 }
 
 func (s *Signer) primaryKey() string {
@@ -164,7 +167,7 @@ func (s *Signer) Verify(signedString string) (*Payload, error) {
 			return &p, err
 		}
 		if tm.Add(duration).Before(now) {
-			return &p, fmt.Errorf("payload signature has expired")
+			return &p, SignatureExpiredError
 		}
 	}
 	return &p, nil
@@ -263,9 +266,7 @@ func (s *Signer) WithExtraKey(keys ...string) *Signer {
 // but tokens signed with any of the extra keys will still verify successfully.
 // Returns the signer instance for method chaining.
 func (s *Signer) WithExtraKeys(keys []string) *Signer {
-	for _, k := range keys {
-		s.keys = append(s.keys, k)
-	}
+	s.keys = append(s.keys, keys...)
 	return s
 }
 

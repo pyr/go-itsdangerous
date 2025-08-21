@@ -1,6 +1,7 @@
 package itsdangerous
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"testing"
@@ -86,6 +87,37 @@ func TestSignVerifyRound(t *testing.T) {
 				decoded, err := s.Verify(signed)
 				if err != nil {
 					t.Fatalf("could not verify: %v", err)
+				}
+
+				if !reflect.DeepEqual(decoded, &p) {
+					t.Fatalf("payload contents have changed")
+				}
+			})
+	}
+}
+
+func TestVerifyExpiryRound(t *testing.T) {
+	clock := &fakeClock{timestamp: 1234}
+	s := NewSigner("foobarbimbaz", "application")
+	s.WithClock(clock)
+
+	payloads := []Payload{
+		{Identifier: "root", Expiry: "1s", Role: "admin"},
+		{Identifier: "u1", Expiry: "1s", Role: "user"},
+	}
+
+	for _, p := range payloads {
+		t.Run(fmt.Sprintf("roundtrip with expiry is honored on behalf of: %s", p.Identifier),
+			func(t *testing.T) {
+				signed, err := s.Sign(p)
+				if err != nil {
+					t.Fatalf("could not sign: %v", err)
+
+				}
+				clock.shiftEpoch(5)
+				decoded, err := s.Verify(signed)
+				if !errors.Is(err, SignatureExpiredError) {
+					t.Fatalf("verification should have failed due to expiry")
 				}
 
 				if !reflect.DeepEqual(decoded, &p) {
