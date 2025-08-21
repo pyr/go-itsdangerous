@@ -38,17 +38,17 @@ import (
 func main() {
     // Create a signer with a secret key and salt
     signer := itsdangerous.NewSigner("your-secret-key", "your-app-name")
-    
+
     // Sign a string
     signed := signer.SignString("hello world")
     fmt.Println("Signed:", signed)
-    
+
     // Verify the signed string
     payload, timestamp, err := signer.VerifyString(signed)
     if err != nil {
         panic(err)
     }
-    
+
     fmt.Println("Payload:", payload)
     fmt.Println("Timestamp:", timestamp)
 }
@@ -149,4 +149,4 @@ go test
 
 ## License
 
-This project follows the same principles as Python's itsdangerous library for cross-platform compatibility.
+ISC licensed, see [LICENSE](LICENSE).
