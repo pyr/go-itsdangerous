@@ -1,0 +1,58 @@
+name: Go CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ "**" ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: go-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        go-version: [ '1.24.x', '1.25.x' ]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+          check-latest: true
+          cache: true  # caches module & build cache based on go.sum
+
+      - name: Print Go version
+        run: go version
+
+      - name: Static analysis (vet)
+        run: go vet ./...
+
+      - name: Run tests (race, coverage)
+        run: |
+          mkdir -p coverage
+          go test ./... \
+            -race \
+            -covermode=atomic \
+            -coverprofile=coverage/coverage.out \
+            -shuffle=on \
+            -v
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-${{ matrix.go-version }}
+          path: coverage/coverage.out
+          if-no-files-found: warn
