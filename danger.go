@@ -81,7 +81,7 @@ type Payload struct {
 var WallClock = wallClock{}
 
 // SignatureExpiredError is returned when a payload expiry has been reached at verification time.
-var SignatureExpiredError = fmt.Errorf("payload signature has expired")
+var ErrSignatureExpired = fmt.Errorf("payload signature has expired")
 
 func (wallClock) Epoch() int64 {
 	return time.Now().Unix()
@@ -167,7 +167,7 @@ func (s *Signer) Verify(signedString string) (*Payload, error) {
 			return &p, err
 		}
 		if tm.Add(duration).Before(now) {
-			return &p, SignatureExpiredError
+			return &p, ErrSignatureExpired
 		}
 	}
 	return &p, nil

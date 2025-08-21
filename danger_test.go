@@ -116,7 +116,7 @@ func TestVerifyExpiryRound(t *testing.T) {
 				}
 				clock.shiftEpoch(5)
 				decoded, err := s.Verify(signed)
-				if !errors.Is(err, SignatureExpiredError) {
+				if !errors.Is(err, ErrSignatureExpired) {
 					t.Fatalf("verification should have failed due to expiry")
 				}
 
